@@ -1,14 +1,14 @@
 {
-  "name": "cypress-test",
+  "name": "for-tests-on-cypress-1",
   "version": "1.0.0",
-  "description": "first tests with Cypress",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "OM",
+  "author": "",
   "license": "ISC",
   "dependencies": {
-    "cypress": "^8.3.0"
+    "cypress": "^9.5.4"
   }
 }
