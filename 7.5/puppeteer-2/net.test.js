@@ -1,59 +1,65 @@
-const { expect, config } = require("chai");
-const { FormatterBuilder } = require("cucumber");
 const { clickElement, getText } = require("./lib/commands.js");
+const {
+  confirmBooking,
+  getFreeRandomChair,
+  selectDate,
+  selectHall,
+} = require("./lib/util.js");
 
 let page;
+let dayAfterToday = 2;
+let hallNumber = 1;
+let severalChairs = 3;
 
 beforeEach(async () => {
   page = await browser.newPage();
-  await page.goto("http://qamid.tmweb.ru/client/index.php");
+  await page.setDefaultNavigationTimeout(0);
 });
 
 afterEach(() => {
   page.close();
 });
 
-test("Should book one ticket", async () => {
-  await clickElement(page, "a:nth-child(2) > span.page-nav__day-week");
-  await clickElement(page, "a.movie-seances__time");
-  await clickElement(
-    page,
-    ".buying-scheme__chair_standart:not(.buying-scheme__chair_taken)"
-  );
-  await clickElement(page, "button.acceptin-button");
-  const actual = await getText(page, "h2.ticket__check-title");
-  expect(actual).contain("Вы выбрали билеты:");
-});
+describe("goToTheCinema tests", () => {
+  beforeEach(async () => {
+    page = await browser.newPage();
+    await page.goto("http://qamid.tmweb.ru");
+  });
 
-test("Should buy two tickets", async () => {
-  await clickElement(page, "a:nth-child(2) > span.page-nav__day-week");
-  await clickElement(page, "a.movie-seances__time");
-  await clickElement(
-    page,
-    ".buying-scheme__chair_standart:not(.buying-scheme__chair_taken)"
-  );
-  await clickElement(page, "button.acceptin-button");
-  const actual = await getText(page, "h2.ticket__check-title");
-  expect(actual).contain("Вы выбрали билеты:");
-});
+  test("should book one chair'", async () => {
+    await selectDate(page, dayAfterToday);
+    await selectHall(page, hallNumber);
+    let freeChair = await getFreeRandomChair(page);
+    await clickElement(page, freeChair);
+    let actual = await confirmBooking(page);
+    expect(actual).toContain("ticket__info-qr");
+  });
 
-test("Should not be able to book taken chair", async () => {
-  await clickElement(
-    page,
-    "body > nav > a:nth-child(3) > span.page-nav__day-number"
-  );
-  await clickElement(
-    page,
-    "body > main > section:nth-child(1) > div.movie-seances__hall > ul > li:nth-child(2) > a"
-  );
-  pageNext = await browser.newPage();
-  await pageNext.goto("https://qamid.tmweb.ru/client/hall.php");
-  await clickElement(
-    page,
-    "body > main > section > div.buying-scheme > div.buying-scheme__wrapper > div:nth-child(4) > span.buying-scheme__chair.buying-scheme__chair_vip.buying-scheme__chair_taken"
-  );
-  const actual = await page.$eval(".acceptin-button", (link) =>
-    link.getAttribute("disabled")
-  );
-  expect(actual).equal("true");
+  test("should book several chairs'", async () => {
+    await selectDate(page, dayAfterToday);
+    await selectHall(page, hallNumber);
+    for (let i = 0; i < severalChairs; i++) {
+      let freeChair = await getFreeRandomChair(page);
+      await clickElement(page, freeChair);
+    }
+    let actual = await confirmBooking(page);
+    expect(actual).toContain("ticket__info-qr");
+    let chairs = (await getText(page, "p:nth-child(2) > span")).split(", ");
+    expect(chairs.length).toEqual(3);
+  });
+
+  test("shouldn't book one chair twice'", async () => {
+    await selectDate(page, dayAfterToday);
+    await selectHall(page, hallNumber);
+    let freeChair = await getFreeRandomChair(page);
+    await clickElement(page, freeChair);
+    let actual = await confirmBooking(page);
+    expect(actual).toContain("ticket__info-qr");
+    await page.goto("http://qamid.tmweb.ru");
+    await selectDate(page, dayAfterToday);
+    await selectHall(page, hallNumber);
+    await clickElement(page, freeChair);
+    let className = await page.$eval(freeChair, (el) => el.classList[2]);
+    expect(className).toContain("buying-scheme__chair_taken");
+  });
 });
